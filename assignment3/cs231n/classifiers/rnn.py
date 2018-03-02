@@ -137,7 +137,18 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        pass
+        fc_out, fc_cache = affine_forward(features, W_proj, b_proj)      
+        we_out, we_cache = word_embedding_forward(captions_in, W_embed)
+        
+        rnn_out, rnn_cache = rnn_forward(we_out, fc_out, Wx, Wh, b)      
+        ta_out, ta_cache = temporal_affine_forward(rnn_out, W_vocab, b_vocab)      
+        loss, dout = temporal_softmax_loss(ta_out, captions_out, mask)
+        
+        dta, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(dout, ta_cache)
+        drnn, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dta, rnn_cache)
+        grads['W_embed'] = word_embedding_backward(drnn, we_cache)
+        _, grads['W_proj'], grads['b_proj'] = affine_backward(dh0, fc_cache)
+        
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -199,7 +210,19 @@ class CaptioningRNN(object):
         # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
         # a loop.                                                                 #
         ###########################################################################
-        pass
+        prev_h, _ = affine_forward(features, W_proj, b_proj) # NxH
+        captions[:,0] = self._start
+        x = np.array([self._start for i in range(N)])
+        
+        for t in range(1, max_length):
+            word_embed, _ = word_embedding_forward(x, W_embed) # NxW
+            next_h, _ = rnn_step_forward(word_embed, prev_h, Wx, Wh, b) # NxH
+            prev_h = next_h
+            vocab_out, _ = affine_forward(next_h, W_vocab, b_vocab) # NxV
+            x = vocab_out.argmax(1)
+            captions[:,t] = x
+        
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################

@@ -2,4 +2,4 @@
 My own solutions to cs231n
 - [x] Assignment1
 - [x] Assignment2
-- [ ] Assignment3
+- [x] Assignment3
